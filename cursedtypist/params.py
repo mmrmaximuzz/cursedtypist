@@ -2,7 +2,7 @@
 Parameters for game configuration.
 """
 
-TIMER_PERIOD_SEC = 0.5
+TIMER_PERIOD_SEC = 0.25
 
 PLAYER_OFFSET = 7
 
