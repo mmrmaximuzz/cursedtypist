@@ -1,4 +1,4 @@
-"""The low level events moduel.
+"""The low level events module.
 
 Provides the event loop via asyncio
 """
