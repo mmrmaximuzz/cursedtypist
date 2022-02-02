@@ -1,6 +1,4 @@
-"""
-Parameters for game configuration.
-"""
+"""Parameters for game configuration."""
 
 TIMER_PERIOD_SEC = 0.25
 
@@ -25,6 +23,6 @@ GAME_PROMPT = "Type the text to run forward"
 GAMEOVER_PROMPT = "Press q to quit"
 WIN_PROMPT = "You have successfully escaped from lava. Press q to quit"
 
-DEFAULT_TEXT = """
+DEFAULT_TEXT = """\
 You can play on your own texts - just pass the path as a command line
 argument"""

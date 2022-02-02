@@ -1,10 +1,10 @@
 """The low level graphics component.
 
-Provides the drawing subsystem via standard curses module
+Provides the drawing subsystem via standard curses module.
 """
 
 import curses
-from typing import Any, TYPE_CHECKING
+from typing import Any, Tuple, TYPE_CHECKING
 
 from . import params
 from .game import GameView
@@ -28,46 +28,47 @@ class CursesView(GameView):
         self._setup_colors()
         self.screen = screen
 
-    def _setup_colors(self):
+    @staticmethod
+    def _setup_colors() -> None:
         curses.start_color()
         curses.init_pair(1, curses.COLOR_RED, curses.COLOR_BLACK)
         curses.init_pair(2, curses.COLOR_YELLOW, curses.COLOR_BLACK)
         curses.init_pair(3, curses.COLOR_BLUE, curses.COLOR_BLACK)
         curses.init_pair(4, curses.COLOR_GREEN, curses.COLOR_BLACK)
 
-    def _get_limits(self):
+    def _get_limits(self) -> Tuple[int, int]:
         ymax, xmax = self.screen.getmaxyx()
         return ymax - 2, xmax - 2  # compensate borders
 
-    def _clear_title_lines(self):
+    def _clear_title_lines(self) -> None:
         _, xmax = self._get_limits()
         self.screen.addstr(params.TITLE_LINE, 1, " " * xmax)
         self.screen.addstr(params.PROMPT_LINE, 1, " " * xmax)
 
     @staticmethod
-    def _lava_attr():
+    def _lava_attr() -> int:
         return curses.color_pair(1) | curses.A_BOLD | curses.A_REVERSE
 
     @staticmethod
-    def _floor_attr():
+    def _floor_attr() -> int:
         return curses.color_pair(2) | curses.A_BOLD
 
     @staticmethod
-    def _text_attr():
+    def _text_attr() -> int:
         return curses.color_pair(3) | curses.A_BOLD
 
     @staticmethod
-    def _player_attr():
+    def _player_attr() -> int:
         return curses.color_pair(4) | curses.A_BOLD
 
-    def init_screen(self):
+    def init_screen(self) -> None:
         self.screen.clear()
         self.screen.border(0)
         self.screen.addstr(params.TITLE_LINE, 1, params.INIT_TITLE)
         self.screen.addstr(params.PROMPT_LINE, 1, params.INIT_PROMPT)
         self.screen.refresh()
 
-    def death_screen(self, player_pos: int):
+    def death_screen(self, player_pos: int) -> None:
         self._clear_title_lines()
         self.screen.addstr(params.TITLE_LINE, 1, params.GAMEOVER_TITLE)
         self.screen.addstr(params.PROMPT_LINE, 1, params.GAMEOVER_PROMPT)
@@ -76,7 +77,7 @@ class CursesView(GameView):
                            params.PLAYER_PIC, self._lava_attr())
         self.screen.refresh()
 
-    def win_screen(self):
+    def win_screen(self) -> None:
         self._clear_title_lines()
         self.screen.addstr(params.TITLE_LINE, 1, params.WIN_TITLE)
         self.screen.addstr(params.PROMPT_LINE, 1, params.WIN_PROMPT)
@@ -101,15 +102,15 @@ class CursesView(GameView):
         self.screen.refresh()
         return to_display
 
-    def clear_text_cell(self, pos: int):
+    def clear_text_cell(self, pos: int) -> None:
         self.screen.addstr(params.PLAYER_LINE, pos, " ")
 
-    def clear_floor_cell(self, pos: int):
+    def clear_floor_cell(self, pos: int) -> None:
         self.screen.addstr(params.FLOOR_LINE, pos, " ")
 
-    def draw_player(self, pos: int):
+    def draw_player(self, pos: int) -> None:
         self.screen.addstr(params.PLAYER_LINE, pos,
                            params.PLAYER_PIC, self._player_attr())
 
-    def refresh(self):
+    def refresh(self) -> None:
         self.screen.refresh()

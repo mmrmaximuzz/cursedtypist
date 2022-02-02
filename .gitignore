@@ -1,0 +1,7 @@
+# python non-source files
+__pycache__
+
+# vim garbage
+*~
+.*~
+.*.swp

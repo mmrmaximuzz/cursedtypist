@@ -1,49 +1,48 @@
-"""
-High-level module for typing game logic
-"""
+"""High-level module for typing game logic."""
 
+import asyncio
 from abc import ABC, abstractmethod
-from typing import Callable
 
 from .params import PLAYER_OFFSET
 
 
 class GameView(ABC):
-    """Interface between game and underlying drawing system"""
+    """Interface between game and underlying drawing system."""
 
     @abstractmethod
-    def init_screen(self):
-        """Draw the initial game scene"""
+    def init_screen(self) -> None:
+        """Draw the initial game scene."""
 
     @abstractmethod
-    def death_screen(self, player_pos: int):
-        """Draw the gameover screen in case of player loses"""
+    def death_screen(self, player_pos: int) -> None:
+        """Draw the gameover screen in case of player loses."""
 
     @abstractmethod
-    def win_screen(self):
-        """Draw the victory screen in case of player wins"""
+    def win_screen(self) -> None:
+        """Draw the victory screen in case of player wins."""
 
     @abstractmethod
-    def game_screen(self, text: str) -> str:
+    def game_screen(self, text: str, player_pos: int) -> int:
         """Draw the screen scene with the text given.
-        Returns the rest of the text that have not fit in the screen
+
+        Return how many symbols have been drawn of the screen.
         """
 
     @abstractmethod
-    def clear_text_cell(self, pos: int):
-        """Clear the cell with text under the position"""
+    def clear_text_cell(self, pos: int) -> None:
+        """Clear the cell with text under the position."""
 
     @abstractmethod
-    def clear_floor_cell(self, pos: int):
-        """Clear the floor with text under the position"""
+    def clear_floor_cell(self, pos: int) -> None:
+        """Clear the floor with text under the position."""
 
     @abstractmethod
-    def draw_player(self, pos: int):
-        """Draw player in the given position"""
+    def draw_player(self, pos: int) -> None:
+        """Draw player in the given position."""
 
     @abstractmethod
-    def refresh(self):
-        """Refresh the screen if the drawing system uses incremental updates"""
+    def refresh(self) -> None:
+        """Refresh the screen."""
 
 
 class GameModel:
@@ -53,28 +52,32 @@ class GameModel:
     """
 
     view: GameView
+    state: str
     tracer: int
     player: int
     typepos: int
     typetext: str
     fulltext: str
+    finished: asyncio.Future[None]
 
     def __init__(self, view: GameView, text: str):
-        """Creates the empty model with given text"""
+        """Create the empty model with given text."""
         self.view = view
         self.tracer = 0
         self.player = PLAYER_OFFSET
         self.typepos = 0
         self.typetext = ""
         self.fulltext = text
+        self.finished = asyncio.Future()
 
         self.view.init_screen()
         self.state = "INIT"
 
-    def _swap_gamescreen(self):
+    def _swap_gamescreen(self) -> None:
         if not self.fulltext:
             self.view.win_screen()
-            raise RuntimeError  # FIXME: use own game exception
+            self.finished.set_result(None)
+            return
 
         # first clear the old game position
         self.view.clear_text_cell(self.player)
@@ -86,9 +89,8 @@ class GameModel:
         self.typetext = self.fulltext[:displayed]
         self.fulltext = self.fulltext[displayed:]
 
-    def player_move(self, key: str):
-        """Process player input and try to move player further"""
-
+    def player_move(self, key: str) -> None:
+        """Process player input and try to move player further."""
         if self.state == "INIT":
             self.state = "GAME"
             self._swap_gamescreen()
@@ -106,9 +108,8 @@ class GameModel:
 
             self.view.refresh()
 
-    def timer_fired(self):
-        """Timer fired, crash the floor behind the player"""
-
+    def timer_fired(self) -> None:
+        """Crash the floor behind the player."""
         if self.state == "INIT":
             return
 
@@ -119,25 +120,36 @@ class GameModel:
         # check whether the game has ended
         if self.tracer == self.player:
             self.view.death_screen(self.player)
-            raise RuntimeError  # FIXME: use own game exception
+            self.finished.set_result(None)
+            return
 
 
-class GameController:
-    """Interface between low-level events and game logic"""
+class GameController(ABC):
+    """Interface between low-level events and game logic."""
 
     model: GameModel
-    key_hook: Callable
 
-    def __init__(self, model: GameModel, key_hook: Callable):
-        """Create the game controller"""
+    def __init__(self, model: GameModel):
+        """Create the game controller."""
         self.model = model
-        self.key_hook = key_hook
 
-    def keyboard_event(self):
-        """Player pressed the button"""
-        key = self.key_hook()
+    @abstractmethod
+    def read_key(self) -> str:
+        """Process keystrokes."""
+
+    def keyboard_event(self) -> None:
+        """Handle keypress."""
+        key = self.read_key()
         self.model.player_move(key)
 
-    def timer_event(self):
-        """Timer fired event"""
+    def timer_event(self) -> None:
+        """Handle timer event."""
         self.model.timer_fired()
+
+    def running(self) -> bool:
+        """Check whether the game is running."""
+        return not self.model.finished.done()
+
+    async def wait_for_completion(self) -> None:
+        """Block until the game is finished."""
+        await self.model.finished
