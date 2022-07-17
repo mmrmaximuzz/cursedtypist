@@ -107,6 +107,15 @@ class GameModel:
                 self._swap_gamescreen()
 
             self.view.refresh()
+        else:
+            self.tracer += 1
+            self.view.clear_floor_cell(self.tracer)
+            self.view.refresh()
+            # check whether the game has ended
+            if self.tracer == self.player:
+                self.view.death_screen(self.player)
+                self.finished.set_result(None)
+                return
 
     def timer_fired(self) -> None:
         """Crash the floor behind the player."""

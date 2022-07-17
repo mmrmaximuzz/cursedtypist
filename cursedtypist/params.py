@@ -1,8 +1,8 @@
 """Parameters for game configuration."""
 
-TIMER_PERIOD_SEC = 0.25
+TIMER_PERIOD_SEC = 0.45
 
-PLAYER_OFFSET = 7
+PLAYER_OFFSET = 10
 
 PLAYER_PIC = "$"
 PLAYER_LINE = 4
