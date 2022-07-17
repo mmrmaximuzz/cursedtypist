@@ -4,6 +4,7 @@ Provides the drawing subsystem via standard curses module.
 """
 
 import curses
+import random
 from typing import Any, Tuple, TYPE_CHECKING
 
 from . import params
@@ -98,7 +99,8 @@ class CursesView(GameView):
         self.screen.addstr(params.PLAYER_LINE, player_pos + 1,
                            display, self._text_attr())
         self.screen.addstr(params.LAVA_LINE, 1,
-                           params.LAVA_PIC * xmax, self._lava_attr())
+                           "".join(random.choices(params.LAVA_CHARS, k=xmax)),
+                           self._lava_attr())
         self.screen.refresh()
         return to_display
 

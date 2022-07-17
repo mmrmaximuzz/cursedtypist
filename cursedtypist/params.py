@@ -8,7 +8,7 @@ PLAYER_PIC = "$"
 PLAYER_LINE = 4
 FLOOR_PIC = "="
 FLOOR_LINE = 5
-LAVA_PIC = "~"
+LAVA_CHARS = "~#@_+-:?*"
 LAVA_LINE = 6
 
 TITLE_LINE = 1
