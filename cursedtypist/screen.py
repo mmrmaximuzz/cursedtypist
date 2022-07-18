@@ -104,6 +104,18 @@ class CursesView(GameView):
         self.screen.refresh()
         return to_display
 
+    def print_message(self, msg: str) -> None:
+        if not msg:
+            _, xmax = self._get_limits()
+            to_fill = xmax - params.MESSAGE_OFFSET
+            self.screen.addstr(params.MESSAGE_LINE,
+                               params.MESSAGE_OFFSET,
+                               " " * to_fill)
+        else:
+            self.screen.addstr(params.MESSAGE_LINE,
+                               params.MESSAGE_OFFSET,
+                               msg, self._lava_attr())
+
     def clear_text_cell(self, pos: int) -> None:
         self.screen.addstr(params.PLAYER_LINE, pos, " ")
 

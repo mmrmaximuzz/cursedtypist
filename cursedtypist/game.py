@@ -29,6 +29,10 @@ class GameView(ABC):
         """
 
     @abstractmethod
+    def print_message(self, msg: str) -> None:
+        """Print the game message."""
+
+    @abstractmethod
     def clear_text_cell(self, pos: int) -> None:
         """Clear the cell with text under the position."""
 
@@ -97,6 +101,7 @@ class GameModel:
             return
 
         if key == self.typetext[self.typepos]:
+            self.view.print_message("")
             self.view.clear_text_cell(self.player)
             self.view.draw_player(self.player + 1)
             self.player += 1
@@ -109,6 +114,7 @@ class GameModel:
             self.view.refresh()
         else:
             self.tracer += 1
+            self.view.print_message("WRONG KEY")
             self.view.clear_floor_cell(self.tracer)
             self.view.refresh()
             # check whether the game has ended

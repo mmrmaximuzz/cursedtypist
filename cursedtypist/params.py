@@ -22,6 +22,9 @@ FLOOR_LINE = 5
 LAVA_CHARS = "~#@_+-:?*"
 LAVA_LINE = 6
 
+MESSAGE_LINE = 8
+MESSAGE_OFFSET = 12
+
 DEFAULT_TEXT = """\
 You can play on your own texts - just pass the path as a command line
 argument"""
