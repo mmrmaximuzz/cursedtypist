@@ -62,7 +62,7 @@ class GameModel:
     typepos: int
     typetext: str
     fulltext: str
-    finished: asyncio.Future[None]
+    finished: asyncio.Future
 
     def __init__(self, view: GameView, text: str):
         """Create the empty model with given text."""
