@@ -55,6 +55,10 @@ class CursesView(GameView):
         return curses.color_pair(2) | curses.A_BOLD
 
     @staticmethod
+    def _floor_active_attr() -> int:
+        return curses.color_pair(2) | curses.A_BOLD | curses.A_REVERSE
+
+    @staticmethod
     def _text_attr() -> int:
         return curses.color_pair(3) | curses.A_BOLD
 
@@ -121,6 +125,8 @@ class CursesView(GameView):
 
     def clear_floor_cell(self, pos: int) -> None:
         self.screen.addstr(params.FLOOR_LINE, pos, " ")
+        self.screen.addstr(params.FLOOR_LINE, pos + 1,
+                           params.FLOOR_PIC, self._floor_active_attr())
 
     def draw_player(self, pos: int) -> None:
         self.screen.addstr(params.PLAYER_LINE, pos,
