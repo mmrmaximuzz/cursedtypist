@@ -2,6 +2,7 @@
 
 import asyncio
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 
 from .params import PLAYER_OFFSET
 
@@ -121,6 +122,7 @@ class GameModel:
             if self.tracer == self.player:
                 self.view.death_screen(self.player)
                 self.finished.set_result(None)
+                self.view.refresh()
                 return
 
     def timer_fired(self) -> None:
@@ -136,9 +138,11 @@ class GameModel:
         if self.tracer == self.player:
             self.view.death_screen(self.player)
             self.finished.set_result(None)
+            self.view.refresh()
             return
 
 
+@dataclass
 class GameController(ABC):
     """Interface between low-level events and game logic."""
 

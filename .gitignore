@@ -1,6 +1,10 @@
 # python non-source files
 __pycache__
 
+# python venv
+.venv
+venv
+
 # vim garbage
 *~
 .*~
