@@ -23,7 +23,7 @@ class GameView(ABC):
         """Draw the victory screen in case of player wins."""
 
     @abstractmethod
-    def game_screen(self, text: str, player_offset: int) -> int:
+    def update_text(self, text: str) -> int:
         """Draw the screen scene with the text given and player offset.
 
         Return how many symbols have been printed on the screen.
@@ -55,51 +55,44 @@ class GameModel:
     view: GameView
     tracer: int
     player: int
-    typepos: int
-    typetext: str
-    fulltext: str
+    text: str
+    border: int
     finished: asyncio.Future
 
     def __init__(self, view: GameView, text: str):
         """Create the empty model with given text."""
         self.view = view
-        self.tracer = 0
-        self.player = PLAYER_INIT_OFFSET
-        self.typepos = 0
-        self.typetext = ""
-        self.fulltext = text
+        self.tracer = -PLAYER_INIT_OFFSET
+        self.player = 0
+        self.text = text
         self.finished = asyncio.Future()
         self.view.init_screen()
 
     def _swap_gamescreen(self) -> None:
-        if not self.fulltext:
-            self.view.win_screen()
-            self.finished.set_result(True)
-            return
-
-        # then refresh the text on the screen
-        self.tracer = 0
-        self.player = PLAYER_INIT_OFFSET
-        self.typepos = 0
-        displayed = self.view.game_screen(self.fulltext, self.player)
-        self.typetext = self.fulltext[:displayed]
-        self.fulltext = self.fulltext[displayed:]
+        displayed = self.view.update_text(self.text[self.player:])
+        self.border = self.player + displayed
 
     def player_move(self, key: str) -> None:
         """Process player input and try to move player further."""
-        if key == self.typetext[self.typepos]:
+        if key == self.text[self.player]:
             self.player += 1
-            self.typepos += 1
             self.view.print_message("")
             self.view.move_player()
-            if self.typepos == len(self.typetext):
+
+            # check whether we should update the text
+            if self.player == self.border:
                 self._swap_gamescreen()
 
+            # check whether the player wins
+            if self.player == len(self.text):
+                self.view.win_screen()
+                self.finished.set_result(True)
         else:
             self.tracer += 1
             self.view.print_message("WRONG KEY")
             self.view.drop_floor()
-            # check whether the game has ended
+
+            # check whether the player loses
             if self.tracer == self.player:
                 self.view.death_screen()
                 self.finished.set_result(False)

@@ -9,6 +9,7 @@ from . import Frontend
 
 from ..events import run_event_loop
 from ..game import GameModel, GameController, GameView
+from ..params import PLAYER_INIT_OFFSET
 
 # ugly hack required because curses module does not provide typing hints
 if TYPE_CHECKING:
@@ -32,14 +33,18 @@ class Params:
     GAMEOVER_PROMPT = "Press q to quit"
     WIN_PROMPT = "You have successfully escaped from lava. Press q to quit"
 
-    PLAYER_PIC = "$"
     PLAYER_LINE = 4
+    PLAYER_PIC = "$"
 
-    FLOOR_PIC = "="
     FLOOR_LINE = 5
+    FLOOR_PIC = "="
 
-    LAVA_CHARS = "~#@_+-:?*"
+    # reserve some characters to print floor lag value
+    FLOOR_LAG_WIDTH = 6  # minus sign + 4 digits + space
+    DRAW_OFFSET = max(FLOOR_LAG_WIDTH, PLAYER_INIT_OFFSET) - PLAYER_INIT_OFFSET
+
     LAVA_LINE = 6
+    LAVA_CHARS = "~#@_+-:?*"
 
     MESSAGE_LINE = 8
     MESSAGE_COLUMN = 12
@@ -68,8 +73,8 @@ class CursesView(GameView):
         curses.curs_set(False)
         self._setup_colors()
         self.screen = screen
-        self.player = -1
-        self.floor = -1
+        self.player = PLAYER_INIT_OFFSET + Params.DRAW_OFFSET
+        self.floor = 1 + Params.DRAW_OFFSET
 
     @staticmethod
     def _setup_colors() -> None:
@@ -83,10 +88,14 @@ class CursesView(GameView):
         ymax, xmax = self.screen.getmaxyx()
         return ymax - 2, xmax - 2  # compensate borders
 
-    def _clear_title_lines(self) -> None:
+    def _clear_title_prompt_lines(self) -> None:
         _, xmax = self._get_limits()
         self.screen.addstr(Params.TITLE_LINE, 1, " " * xmax)
         self.screen.addstr(Params.PROMPT_LINE, 1, " " * xmax)
+
+    def _clear_player_line(self) -> None:
+        _, xmax = self._get_limits()
+        self.screen.addstr(Params.PLAYER_LINE, 1, " " * xmax)
 
     @staticmethod
     def _lava_attr() -> int:
@@ -108,6 +117,11 @@ class CursesView(GameView):
     def _player_attr() -> int:
         return curses.color_pair(4) | curses.A_BOLD
 
+    def _draw_floor_lag(self) -> None:
+        fmt = "{:" + str(Params.FLOOR_LAG_WIDTH) + "}"
+        self.screen.addstr(Params.FLOOR_LINE, 1, fmt.format(self.floor),
+                           self._floor_active_attr())
+
     def init_screen(self) -> None:
         """Draw the initial screen.
 
@@ -124,7 +138,7 @@ class CursesView(GameView):
 
         Drop the player character into the lava and set the gameover title.
         """
-        self._clear_title_lines()
+        self._clear_title_prompt_lines()
         self.screen.addstr(Params.TITLE_LINE, 1, Params.GAMEOVER_TITLE)
         self.screen.addstr(Params.PROMPT_LINE, 1, Params.GAMEOVER_PROMPT)
         self.screen.addstr(Params.PLAYER_LINE, self.player, " ")
@@ -137,44 +151,43 @@ class CursesView(GameView):
 
         Just print the winning message.
         """
-        self._clear_title_lines()
+        self._clear_title_prompt_lines()
         self.screen.addstr(Params.TITLE_LINE, 1, Params.WIN_TITLE)
         self.screen.addstr(Params.PROMPT_LINE, 1, Params.WIN_PROMPT)
         self.screen.refresh()
 
-    def game_screen(self, text: str, player_offset: int) -> int:
+    def update_text(self, text: str) -> int:
         """Draw/update the game screen.
 
-        As curses windows is limited, just draw the part of the game text. The
-        lava is just a random punctuation characters, and the player char is
-        just a dollar sign.
+        As curses window is limited, just draw the part of the game text. The
+        lava is random punctuation, and the player char is just a dollar sign.
         """
-        self._clear_title_lines()
+        self._clear_title_prompt_lines()
+        self._clear_player_line()
 
-        # clear the previous player position for sure
-        if self.player != -1:
-            self.screen.addstr(Params.PLAYER_LINE, self.player,
-                               " ", self._player_attr())
+        old_offset = self.player - self.floor
+        self.player = PLAYER_INIT_OFFSET + Params.DRAW_OFFSET
+        self.floor = self.player - old_offset
 
-        self.player = player_offset
-        self.floor = 1
+        _, xmax = self._get_limits()
+        to_display = xmax - self.player
+        display = text[:to_display]
 
         self.screen.addstr(Params.TITLE_LINE, 1, Params.GAME_TITLE)
         self.screen.addstr(Params.PROMPT_LINE, 1, Params.GAME_PROMPT)
         self.screen.addstr(Params.PLAYER_LINE, self.player,
                            Params.PLAYER_PIC, self._player_attr())
-
-        _, xmax = self._get_limits()
-        to_display = xmax - player_offset
-        display = text[:to_display]
-
-        self.screen.addstr(Params.FLOOR_LINE, self.floor,
-                           Params.FLOOR_PIC * xmax, self._floor_attr())
+        self.screen.addstr(Params.FLOOR_LINE, max(1, self.floor),
+                           Params.FLOOR_PIC * (xmax - max(1, self.floor) + 1),
+                           self._floor_attr())
         self.screen.addstr(Params.PLAYER_LINE, self.player + 1,
                            display, self._text_attr())
         self.screen.addstr(Params.LAVA_LINE, 1,
                            "".join(random.choices(Params.LAVA_CHARS, k=xmax)),
                            self._lava_attr())
+        if self.floor < 1:
+            self._draw_floor_lag()
+
         self.screen.refresh()
         return to_display
 
@@ -197,9 +210,18 @@ class CursesView(GameView):
 
     def drop_floor(self) -> None:
         """Drop one floor cell."""
-        self.screen.addstr(Params.FLOOR_LINE, self.floor, " ")
-        self.screen.addstr(Params.FLOOR_LINE, self.floor + 1,
-                           Params.FLOOR_PIC, self._floor_active_attr())
+        if self.floor < 0:
+            self._draw_floor_lag()
+        elif self.floor == 0:
+            # refill the initial part of the floor
+            self.screen.addstr(Params.FLOOR_LINE, 1,
+                               Params.FLOOR_PIC * Params.FLOOR_LAG_WIDTH,
+                               self._floor_attr())
+        else:
+            self.screen.addstr(Params.FLOOR_LINE, self.floor, " ")
+            self.screen.addstr(Params.FLOOR_LINE, self.floor + 1,
+                               Params.FLOOR_PIC, self._floor_active_attr())
+
         self.floor += 1
 
     def move_player(self) -> None:
