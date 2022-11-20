@@ -20,7 +20,7 @@ else:
 
 @dataclass
 class CursesController(GameController):
-    """Cursed-based implementation for a cursedtypist game controller."""
+    """Curses-based implementation for a cursedtypist game controller."""
 
     screen: _CursesWindow
 
@@ -178,14 +178,14 @@ class CursesView(GameView):
 class CursesFrontend(Frontend):
     """Frontend based on `curses` python module."""
 
-    def wrap_run(self, screen: _CursesWindow, text: str) -> None:
+    def wrap_run(self, screen: _CursesWindow, text: str) -> bool:
         """Run the game in curses-wrapped environment."""
         view = CursesView(screen)
         model = GameModel(view, text)
         controller = CursesController(model, screen)
 
         # start the game
-        run_event_loop(controller)
+        result = run_event_loop(controller)
 
         # refresh the screen now to not to lose last update
         screen.refresh()
@@ -196,6 +196,8 @@ class CursesFrontend(Frontend):
             if key == "q":
                 break
 
-    def run(self, text: str) -> None:
+        return result
+
+    def run(self, text: str) -> bool:
         """Prepare the components and make `curses.wrapper` call."""
-        curses.wrapper(self.wrap_run, text)
+        return curses.wrapper(self.wrap_run, text)
