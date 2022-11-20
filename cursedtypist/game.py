@@ -4,7 +4,7 @@ import asyncio
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
-from .params import PLAYER_OFFSET
+from .params import PLAYER_INIT_OFFSET
 
 
 class GameView(ABC):
@@ -69,7 +69,7 @@ class GameModel:
         """Create the empty model with given text."""
         self.view = view
         self.tracer = 0
-        self.player = PLAYER_OFFSET
+        self.player = PLAYER_INIT_OFFSET
         self.typepos = 0
         self.typetext = ""
         self.fulltext = text
@@ -89,7 +89,7 @@ class GameModel:
 
         # then refresh the text on the screen
         self.tracer = 0
-        self.player = PLAYER_OFFSET
+        self.player = PLAYER_INIT_OFFSET
         displayed = self.view.game_screen(self.fulltext, self.player)
         self.typetext = self.fulltext[:displayed]
         self.fulltext = self.fulltext[displayed:]

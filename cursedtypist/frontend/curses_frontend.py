@@ -7,7 +7,6 @@ from typing import Any, Tuple, TYPE_CHECKING
 
 from . import Frontend
 
-from .. import params
 from ..events import run_event_loop
 from ..game import GameModel, GameController, GameView
 
@@ -16,6 +15,34 @@ if TYPE_CHECKING:
     from _curses import _CursesWindow
 else:
     _CursesWindow = Any
+
+
+class Params:
+    """Specific params for curses frontend."""
+
+    TITLE_LINE = 1
+    INIT_TITLE = "WELCOME TO 'CURSED TYPIST' - STUPID TYPING GAME!"
+    GAME_TITLE = "RUN FROM THE LAVA!"
+    GAMEOVER_TITLE = "OUCH, YOU HAVE FALLEN INTO THE LAVA!"
+    WIN_TITLE = "YOU WIN!"
+
+    PROMPT_LINE = 2
+    INIT_PROMPT = "Press any key to start playing"
+    GAME_PROMPT = "Type the text to run forward"
+    GAMEOVER_PROMPT = "Press q to quit"
+    WIN_PROMPT = "You have successfully escaped from lava. Press q to quit"
+
+    PLAYER_PIC = "$"
+    PLAYER_LINE = 4
+
+    FLOOR_PIC = "="
+    FLOOR_LINE = 5
+
+    LAVA_CHARS = "~#@_+-:?*"
+    LAVA_LINE = 6
+
+    MESSAGE_LINE = 8
+    MESSAGE_COLUMN = 12
 
 
 @dataclass
@@ -54,8 +81,8 @@ class CursesView(GameView):
 
     def _clear_title_lines(self) -> None:
         _, xmax = self._get_limits()
-        self.screen.addstr(params.TITLE_LINE, 1, " " * xmax)
-        self.screen.addstr(params.PROMPT_LINE, 1, " " * xmax)
+        self.screen.addstr(Params.TITLE_LINE, 1, " " * xmax)
+        self.screen.addstr(Params.PROMPT_LINE, 1, " " * xmax)
 
     @staticmethod
     def _lava_attr() -> int:
@@ -84,8 +111,8 @@ class CursesView(GameView):
         """
         self.screen.clear()
         self.screen.border(0)
-        self.screen.addstr(params.TITLE_LINE, 1, params.INIT_TITLE)
-        self.screen.addstr(params.PROMPT_LINE, 1, params.INIT_PROMPT)
+        self.screen.addstr(Params.TITLE_LINE, 1, Params.INIT_TITLE)
+        self.screen.addstr(Params.PROMPT_LINE, 1, Params.INIT_PROMPT)
         self.screen.refresh()
 
     def death_screen(self, player_pos: int) -> None:
@@ -94,11 +121,11 @@ class CursesView(GameView):
         Drop the player character into the lava and set the gameover title.
         """
         self._clear_title_lines()
-        self.screen.addstr(params.TITLE_LINE, 1, params.GAMEOVER_TITLE)
-        self.screen.addstr(params.PROMPT_LINE, 1, params.GAMEOVER_PROMPT)
-        self.screen.addstr(params.PLAYER_LINE, player_pos, " ")
-        self.screen.addstr(params.LAVA_LINE, player_pos,
-                           params.PLAYER_PIC, self._lava_attr())
+        self.screen.addstr(Params.TITLE_LINE, 1, Params.GAMEOVER_TITLE)
+        self.screen.addstr(Params.PROMPT_LINE, 1, Params.GAMEOVER_PROMPT)
+        self.screen.addstr(Params.PLAYER_LINE, player_pos, " ")
+        self.screen.addstr(Params.LAVA_LINE, player_pos,
+                           Params.PLAYER_PIC, self._lava_attr())
         self.screen.refresh()
 
     def win_screen(self) -> None:
@@ -107,8 +134,8 @@ class CursesView(GameView):
         Just print the winning message.
         """
         self._clear_title_lines()
-        self.screen.addstr(params.TITLE_LINE, 1, params.WIN_TITLE)
-        self.screen.addstr(params.PROMPT_LINE, 1, params.WIN_PROMPT)
+        self.screen.addstr(Params.TITLE_LINE, 1, Params.WIN_TITLE)
+        self.screen.addstr(Params.PROMPT_LINE, 1, Params.WIN_PROMPT)
         self.screen.refresh()
 
     def game_screen(self, text: str, player_pos: int) -> int:
@@ -119,20 +146,20 @@ class CursesView(GameView):
         a just a dollar sign.
         """
         self._clear_title_lines()
-        self.screen.addstr(params.TITLE_LINE, 1, params.GAME_TITLE)
-        self.screen.addstr(params.PROMPT_LINE, 1, params.GAME_PROMPT)
-        self.screen.addstr(params.PLAYER_LINE, player_pos,
-                           params.PLAYER_PIC, self._player_attr())
+        self.screen.addstr(Params.TITLE_LINE, 1, Params.GAME_TITLE)
+        self.screen.addstr(Params.PROMPT_LINE, 1, Params.GAME_PROMPT)
+        self.screen.addstr(Params.PLAYER_LINE, player_pos,
+                           Params.PLAYER_PIC, self._player_attr())
 
         _, xmax = self._get_limits()
         to_display = xmax - player_pos
         display = text[:to_display]
-        self.screen.addstr(params.FLOOR_LINE, 1,
-                           params.FLOOR_PIC * xmax, self._floor_attr())
-        self.screen.addstr(params.PLAYER_LINE, player_pos + 1,
+        self.screen.addstr(Params.FLOOR_LINE, 1,
+                           Params.FLOOR_PIC * xmax, self._floor_attr())
+        self.screen.addstr(Params.PLAYER_LINE, player_pos + 1,
                            display, self._text_attr())
-        self.screen.addstr(params.LAVA_LINE, 1,
-                           "".join(random.choices(params.LAVA_CHARS, k=xmax)),
+        self.screen.addstr(Params.LAVA_LINE, 1,
+                           "".join(random.choices(Params.LAVA_CHARS, k=xmax)),
                            self._lava_attr())
         self.screen.refresh()
         return to_display
@@ -145,29 +172,29 @@ class CursesView(GameView):
         """
         if not msg:
             _, xmax = self._get_limits()
-            to_fill = xmax - params.MESSAGE_OFFSET
-            self.screen.addstr(params.MESSAGE_LINE,
-                               params.MESSAGE_OFFSET,
+            to_fill = xmax - Params.MESSAGE_COLUMN
+            self.screen.addstr(Params.MESSAGE_LINE,
+                               Params.MESSAGE_COLUMN,
                                " " * to_fill)
         else:
-            self.screen.addstr(params.MESSAGE_LINE,
-                               params.MESSAGE_OFFSET,
+            self.screen.addstr(Params.MESSAGE_LINE,
+                               Params.MESSAGE_COLUMN,
                                msg, self._lava_attr())
 
     def clear_text_cell(self, pos: int) -> None:
         """Replace one character of text by empty space under `pos`."""
-        self.screen.addstr(params.PLAYER_LINE, pos, " ")
+        self.screen.addstr(Params.PLAYER_LINE, pos, " ")
 
     def clear_floor_cell(self, pos: int) -> None:
         """Crash one piece of the floor under `pos`."""
-        self.screen.addstr(params.FLOOR_LINE, pos, " ")
-        self.screen.addstr(params.FLOOR_LINE, pos + 1,
-                           params.FLOOR_PIC, self._floor_active_attr())
+        self.screen.addstr(Params.FLOOR_LINE, pos, " ")
+        self.screen.addstr(Params.FLOOR_LINE, pos + 1,
+                           Params.FLOOR_PIC, self._floor_active_attr())
 
     def draw_player(self, pos: int) -> None:
         """Draw the player character under `pos`."""
-        self.screen.addstr(params.PLAYER_LINE, pos,
-                           params.PLAYER_PIC, self._player_attr())
+        self.screen.addstr(Params.PLAYER_LINE, pos,
+                           Params.PLAYER_PIC, self._player_attr())
 
     def refresh(self) -> None:
         """Refresh the curses screen."""
