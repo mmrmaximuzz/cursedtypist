@@ -15,7 +15,7 @@ class GameView(ABC):
         """Draw the initial game scene."""
 
     @abstractmethod
-    def death_screen(self, player_pos: int) -> None:
+    def death_screen(self) -> None:
         """Draw the gameover screen in case of player loses."""
 
     @abstractmethod
@@ -23,10 +23,10 @@ class GameView(ABC):
         """Draw the victory screen in case of player wins."""
 
     @abstractmethod
-    def game_screen(self, text: str, player_pos: int) -> int:
-        """Draw the screen scene with the text given.
+    def game_screen(self, text: str, player_offset: int) -> int:
+        """Draw the screen scene with the text given and player offset.
 
-        Return how many symbols have been drawn of the screen.
+        Return how many symbols have been printed on the screen.
         """
 
     @abstractmethod
@@ -34,16 +34,12 @@ class GameView(ABC):
         """Print the game message."""
 
     @abstractmethod
-    def clear_text_cell(self, pos: int) -> None:
-        """Clear the cell with text under the position."""
+    def drop_floor(self) -> None:
+        """Drop one floor cell."""
 
     @abstractmethod
-    def clear_floor_cell(self, pos: int) -> None:
-        """Clear the floor with text under the position."""
-
-    @abstractmethod
-    def draw_player(self, pos: int) -> None:
-        """Draw player in the given position."""
+    def move_player(self) -> None:
+        """Move player one step futher."""
 
     @abstractmethod
     def refresh(self) -> None:
@@ -57,7 +53,6 @@ class GameModel:
     """
 
     view: GameView
-    state: str
     tracer: int
     player: int
     typepos: int
@@ -74,9 +69,7 @@ class GameModel:
         self.typetext = ""
         self.fulltext = text
         self.finished = asyncio.Future()
-
         self.view.init_screen()
-        self.state = "INIT"
 
     def _swap_gamescreen(self) -> None:
         if not self.fulltext:
@@ -84,60 +77,46 @@ class GameModel:
             self.finished.set_result(True)
             return
 
-        # first clear the old game position
-        self.view.clear_text_cell(self.player)
-
         # then refresh the text on the screen
         self.tracer = 0
         self.player = PLAYER_INIT_OFFSET
+        self.typepos = 0
         displayed = self.view.game_screen(self.fulltext, self.player)
         self.typetext = self.fulltext[:displayed]
         self.fulltext = self.fulltext[displayed:]
 
     def player_move(self, key: str) -> None:
         """Process player input and try to move player further."""
-        if self.state == "INIT":
-            self.state = "GAME"
-            self._swap_gamescreen()
-            return
-
         if key == self.typetext[self.typepos]:
-            self.view.print_message("")
-            self.view.clear_text_cell(self.player)
-            self.view.draw_player(self.player + 1)
             self.player += 1
             self.typepos += 1
-
+            self.view.print_message("")
+            self.view.move_player()
             if self.typepos == len(self.typetext):
-                self.typepos = 0
                 self._swap_gamescreen()
 
         else:
             self.tracer += 1
             self.view.print_message("WRONG KEY")
-            self.view.clear_floor_cell(self.tracer)
+            self.view.drop_floor()
             # check whether the game has ended
             if self.tracer == self.player:
-                self.view.death_screen(self.player)
+                self.view.death_screen()
                 self.finished.set_result(False)
 
         self.view.refresh()
 
     def timer_fired(self) -> None:
         """Crash the floor behind the player."""
-        if self.state == "INIT":
-            return
-
         self.tracer += 1
-        self.view.clear_floor_cell(self.tracer)
-        self.view.refresh()
+        self.view.drop_floor()
 
         # check whether the game has ended
         if self.tracer == self.player:
-            self.view.death_screen(self.player)
+            self.view.death_screen()
             self.finished.set_result(False)
-            self.view.refresh()
-            return
+
+        self.view.refresh()
 
 
 @dataclass
