@@ -81,7 +81,7 @@ class GameModel:
     def _swap_gamescreen(self) -> None:
         if not self.fulltext:
             self.view.win_screen()
-            self.finished.set_result(None)
+            self.finished.set_result(True)
             return
 
         # first clear the old game position
@@ -112,18 +112,16 @@ class GameModel:
                 self.typepos = 0
                 self._swap_gamescreen()
 
-            self.view.refresh()
         else:
             self.tracer += 1
             self.view.print_message("WRONG KEY")
             self.view.clear_floor_cell(self.tracer)
-            self.view.refresh()
             # check whether the game has ended
             if self.tracer == self.player:
                 self.view.death_screen(self.player)
-                self.finished.set_result(None)
-                self.view.refresh()
-                return
+                self.finished.set_result(False)
+
+        self.view.refresh()
 
     def timer_fired(self) -> None:
         """Crash the floor behind the player."""
@@ -137,7 +135,7 @@ class GameModel:
         # check whether the game has ended
         if self.tracer == self.player:
             self.view.death_screen(self.player)
-            self.finished.set_result(None)
+            self.finished.set_result(False)
             self.view.refresh()
             return
 
@@ -169,6 +167,6 @@ class GameController(ABC):
         """Check whether the game is running."""
         return not self.model.finished.done()
 
-    async def wait_for_completion(self) -> None:
+    async def wait_for_completion(self) -> bool:
         """Block until the game is finished."""
-        await self.model.finished
+        return await self.model.finished

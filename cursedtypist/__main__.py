@@ -59,9 +59,14 @@ def main() -> None:
     # do some customization based on CLI args
     text = prepare_game_text(args.path)
     frontend = prepare_frontend(args.frontend)
+    print(f"Start game on {args.path or 'default'} text with {args.frontend}")
 
     # run the game
-    frontend.run(text)
+    win = frontend.run(text)
+    if win:
+        print("You win")
+    else:
+        print("You lose")
 
 
 if __name__ == "__main__":

@@ -47,16 +47,17 @@ async def stdin_actor(controller: GameController) -> None:
         controller.keyboard_event()
 
 
-async def event_main_loop(controller: GameController) -> None:
+async def event_main_loop(controller: GameController) -> bool:
     """Run the main event cycle.
 
     Start timer and create a watcher to process stdin events asynchonously.
     """
     asyncio.create_task(stdin_actor(controller))
     asyncio.create_task(timer_actor(controller))
-    await controller.wait_for_completion()
+    return await controller.wait_for_completion()
 
 
-def run_event_loop(controller: GameController) -> None:
+def run_event_loop(controller: GameController) -> bool:
     """Transform the current flow into asyncio event loop."""
-    asyncio.get_event_loop().run_until_complete(event_main_loop(controller))
+    loop = asyncio.get_event_loop()
+    return loop.run_until_complete(event_main_loop(controller))
