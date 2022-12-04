@@ -1,13 +1,14 @@
 """Frontend for cursedtypist based on builtin `curses` module."""
 
+import asyncio
 import curses
 import random
+import sys
 from dataclasses import dataclass
 from typing import Any, Tuple, TYPE_CHECKING
 
 from . import Frontend
 
-from ..events import run_event_loop
 from ..game import GameModel, GameController, GameView
 from ..params import PLAYER_INIT_OFFSET
 
@@ -56,8 +57,23 @@ class CursesController(GameController):
 
     screen: _CursesWindow
 
-    def read_key(self) -> str:
-        """Read key is implemented via `getkey` in `curses`."""
+    async def wait_key(self) -> str:
+        """Wait for the data in stdin and get key using `curses`."""
+        # first downgrade the stdin stream to corresponding file descriptior
+        stdinfd = sys.stdin.fileno()
+
+        # then register the dumb reader for this fd which does nothing
+        future: asyncio.Future[None] = asyncio.Future()
+        loop = asyncio.get_event_loop()
+        loop.add_reader(stdinfd, future.set_result, None)
+
+        # and then put this dumb reader into oneshot mode
+        future.add_done_callback(lambda f: loop.remove_reader(stdinfd))
+
+        # await for stdin events
+        await future
+
+        # now there is some data in stdin, `getkey` will not block
         return self.screen.getkey()
 
 
@@ -251,7 +267,8 @@ class CursesFrontend(Frontend):
         model._swap_gamescreen()
 
         # start the game
-        result = run_event_loop(controller)
+        loop = asyncio.get_event_loop()
+        result = loop.run_until_complete(controller.loop())
 
         # refresh the screen now to not to lose last update
         screen.refresh()
