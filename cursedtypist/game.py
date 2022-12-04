@@ -4,7 +4,7 @@ import asyncio
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
-from .params import PLAYER_INIT_OFFSET
+from .params import PLAYER_INIT_OFFSET, TIMER_PERIOD_SEC
 
 
 class GameView(ABC):
@@ -122,23 +122,38 @@ class GameController(ABC):
         """Create the game controller."""
         self.model = model
 
-    @abstractmethod
-    def read_key(self) -> str:
-        """Process keystrokes."""
-
-    def keyboard_event(self) -> None:
-        """Handle keypress."""
-        key = self.read_key()
-        self.model.player_move(key)
-
-    def timer_event(self) -> None:
-        """Handle timer event."""
-        self.model.timer_fired()
-
     def running(self) -> bool:
         """Check whether the game is running."""
         return not self.model.finished.done()
 
-    async def wait_for_completion(self) -> bool:
-        """Block until the game is finished."""
+    @abstractmethod
+    async def wait_key(self) -> str:
+        """Process keystrokes."""
+
+    async def stdin_actor(self) -> None:
+        """Perform async reading from stdin with dirty hack."""
+        while True:
+            key = await self.wait_key()
+
+            # check exit condition
+            if not self.running():
+                break
+
+            self.model.player_move(key)
+
+    async def timer_actor(self) -> None:
+        """Generate timer events and notify controller."""
+        while True:
+            await asyncio.sleep(TIMER_PERIOD_SEC)
+
+            # check exit condition
+            if not self.running():
+                break
+
+            self.model.timer_fired()
+
+    async def loop(self) -> bool:
+        """Start the game in asyncio context."""
+        asyncio.create_task(self.stdin_actor())
+        asyncio.create_task(self.timer_actor())
         return await self.model.finished
