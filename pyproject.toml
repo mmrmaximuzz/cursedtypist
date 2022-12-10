@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "cursedtypist"
 version = "0.1.0"
 authors = [
-  { name="Maxim Petrov", email="mmrmaximuzz@gmail.com" },
+    { name="Maxim Petrov", email="mmrmaximuzz@gmail.com" },
 ]
 description = "Simple typing game inspired by babytype."
 readme = "README.md"
@@ -21,3 +21,10 @@ classifiers = [
 
 [project.urls]
 "Homepage" = "https://github.com/mrmaximuzz/cursedtypist"
+
+[project.optional-dependencies]
+testing = [
+    'pytest=7.2.0',
+    'pytest-cov=4.0.0',
+    'pytest-mock=3.10.0',
+]
