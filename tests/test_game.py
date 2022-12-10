@@ -6,7 +6,7 @@ from cursedtypist import game
 from cursedtypist import params
 
 
-__TEST_TEXT = 'TEXT'
+__TEST_TEXT = "TEXT"
 
 
 @pytest.fixture
