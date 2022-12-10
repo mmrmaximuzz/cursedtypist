@@ -17,15 +17,21 @@ class CursesReplayController(game.GameController):
 
     text: str
     pos: int = field(default=0)
+    cnt: int = field(default=0)
 
     async def wait_key(self) -> str:
         """Return the next key from the text."""
         # imitate some delay in typing
         await asyncio.sleep(0.015)
 
-        # get key and advance the pointer
-        key = self.text[self.pos]
-        self.pos += 1
+        self.cnt += 1
+        if self.cnt % 10:
+            # get key and advance the pointer
+            key = self.text[self.pos]
+            self.pos += 1
+        else:
+            # imitate typos
+            key = chr(0)
 
         return key
 
