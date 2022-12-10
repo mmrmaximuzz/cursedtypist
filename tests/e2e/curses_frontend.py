@@ -50,7 +50,7 @@ class CursesReplayFrontend(cf.CursesFrontend):
 
 def main() -> None:
     """Run replay test."""
-    text = (params.DEFAULT_TEXT * 3).replace('\n', ' ')
+    text = (params.DEFAULT_TEXT * 3).replace("\n", " ")
     CursesReplayFrontend().run(text)
 
 
