@@ -21,3 +21,10 @@ classifiers = [
 
 [project.urls]
 "Homepage" = "https://github.com/mrmaximuzz/cursedtypist"
+
+[project.optional-dependencies]
+testing = [
+    'pytest=7.2.0',
+    'pytest-cov=4.0.0',
+    'pytest-mock=3.10.0',
+]
