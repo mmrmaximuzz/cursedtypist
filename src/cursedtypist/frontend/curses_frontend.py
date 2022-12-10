@@ -5,7 +5,7 @@ import curses
 import random
 import sys
 from dataclasses import dataclass
-from typing import Any, Tuple, TYPE_CHECKING
+from typing import Any, Optional, Tuple, TYPE_CHECKING
 
 from . import Frontend
 
@@ -83,6 +83,7 @@ class CursesView(GameView):
     screen: _CursesWindow
     player: int
     floor: int
+    text: Optional[str]
 
     def __init__(self, screen: _CursesWindow):
         """Prepare the curses window."""
@@ -91,6 +92,7 @@ class CursesView(GameView):
         self.screen = screen
         self.player = PLAYER_INIT_OFFSET + Params.DRAW_OFFSET
         self.floor = 1 + Params.DRAW_OFFSET
+        self.text = None
 
     @staticmethod
     def _setup_colors() -> None:
@@ -138,6 +140,38 @@ class CursesView(GameView):
         self.screen.addstr(Params.FLOOR_LINE, 1, fmt.format(self.floor),
                            self._floor_active_attr())
 
+    def _update_game_screen(self) -> None:
+        """Update the game screen.
+
+        As curses window is limited, just draw the part of the game text. The
+        lava is random punctuation, and the player char is just a dollar sign.
+        """
+        old_offset = self.player - self.floor
+        self.player = PLAYER_INIT_OFFSET + Params.DRAW_OFFSET
+        self.floor = self.player - old_offset
+
+        _, xmax = self._get_limits()
+        to_display = xmax - self.player
+        display, self.text = self.text[:to_display], self.text[to_display:]
+
+        self._clear_player_line()
+
+        self.screen.addstr(Params.PLAYER_LINE, self.player,
+                           Params.PLAYER_PIC, self._player_attr())
+        self.screen.addstr(Params.FLOOR_LINE, max(1, self.floor),
+                           Params.FLOOR_PIC * (xmax - max(1, self.floor) + 1),
+                           self._floor_attr())
+        self.screen.addstr(Params.PLAYER_LINE, self.player + 1,
+                           display, self._text_attr())
+        self.screen.addstr(Params.LAVA_LINE, 1,
+                           "".join(random.choices(Params.LAVA_CHARS, k=xmax)),
+                           self._lava_attr())
+
+        if self.floor < 1:
+            self._draw_floor_lag()
+
+        self.screen.refresh()
+
     def init_screen(self) -> None:
         """Draw the initial screen.
 
@@ -148,6 +182,20 @@ class CursesView(GameView):
         self.screen.addstr(Params.TITLE_LINE, 1, Params.INIT_TITLE)
         self.screen.addstr(Params.PROMPT_LINE, 1, Params.INIT_PROMPT)
         self.screen.refresh()
+
+    def game_screen(self, text: str) -> None:
+        """Draw the main game screen.
+
+        As curses window is limited, just draw the part of the game text. The
+        lava is random punctuation, and the player char is just a dollar sign.
+        """
+        # print the game mode title and prompt
+        self._clear_title_prompt_lines()
+        self.screen.addstr(Params.TITLE_LINE, 1, Params.GAME_TITLE)
+        self.screen.addstr(Params.PROMPT_LINE, 1, Params.GAME_PROMPT)
+
+        self.text = text
+        self._update_game_screen()
 
     def death_screen(self) -> None:
         """Draw the death screen.
@@ -171,41 +219,6 @@ class CursesView(GameView):
         self.screen.addstr(Params.TITLE_LINE, 1, Params.WIN_TITLE)
         self.screen.addstr(Params.PROMPT_LINE, 1, Params.WIN_PROMPT)
         self.screen.refresh()
-
-    def update_text(self, text: str) -> int:
-        """Draw/update the game screen.
-
-        As curses window is limited, just draw the part of the game text. The
-        lava is random punctuation, and the player char is just a dollar sign.
-        """
-        self._clear_title_prompt_lines()
-        self._clear_player_line()
-
-        old_offset = self.player - self.floor
-        self.player = PLAYER_INIT_OFFSET + Params.DRAW_OFFSET
-        self.floor = self.player - old_offset
-
-        _, xmax = self._get_limits()
-        to_display = xmax - self.player
-        display = text[:to_display]
-
-        self.screen.addstr(Params.TITLE_LINE, 1, Params.GAME_TITLE)
-        self.screen.addstr(Params.PROMPT_LINE, 1, Params.GAME_PROMPT)
-        self.screen.addstr(Params.PLAYER_LINE, self.player,
-                           Params.PLAYER_PIC, self._player_attr())
-        self.screen.addstr(Params.FLOOR_LINE, max(1, self.floor),
-                           Params.FLOOR_PIC * (xmax - max(1, self.floor) + 1),
-                           self._floor_attr())
-        self.screen.addstr(Params.PLAYER_LINE, self.player + 1,
-                           display, self._text_attr())
-        self.screen.addstr(Params.LAVA_LINE, 1,
-                           "".join(random.choices(Params.LAVA_CHARS, k=xmax)),
-                           self._lava_attr())
-        if self.floor < 1:
-            self._draw_floor_lag()
-
-        self.screen.refresh()
-        return to_display
 
     def print_message(self, msg: str) -> None:
         """Print a new message.
@@ -247,6 +260,10 @@ class CursesView(GameView):
                            Params.PLAYER_PIC, self._player_attr())
         self.player += 1
 
+        _, xlim = self._get_limits()
+        if self.player == xlim:
+            self._update_game_screen()
+
     def refresh(self) -> None:
         """Refresh the curses screen."""
         self.screen.refresh()
@@ -264,7 +281,6 @@ class CursesFrontend(Frontend):
 
         # wait any key to start the game
         _ = screen.getkey()
-        model._swap_gamescreen()
 
         # start the game
         loop = asyncio.get_event_loop()

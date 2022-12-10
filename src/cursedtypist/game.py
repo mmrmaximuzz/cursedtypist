@@ -15,19 +15,16 @@ class GameView(ABC):
         """Draw the initial game scene."""
 
     @abstractmethod
+    def game_screen(self, text: str) -> None:
+        """Draw the game screen with the text given."""
+
+    @abstractmethod
     def death_screen(self) -> None:
         """Draw the gameover screen in case of player loses."""
 
     @abstractmethod
     def win_screen(self) -> None:
         """Draw the victory screen in case of player wins."""
-
-    @abstractmethod
-    def update_text(self, text: str) -> int:
-        """Draw the screen scene with the text given and player offset.
-
-        Return how many symbols have been printed on the screen.
-        """
 
     @abstractmethod
     def print_message(self, msg: str) -> None:
@@ -68,9 +65,9 @@ class GameModel:
         self.finished = asyncio.Future()
         self.view.init_screen()
 
-    def _swap_gamescreen(self) -> None:
-        displayed = self.view.update_text(self.text[self.player:])
-        self.border = self.player + displayed
+    def start(self) -> None:
+        """Push the text to the view and start."""
+        self.view.game_screen(self.text)
 
     def player_move(self, key: str) -> None:
         """Process player input and try to move player further."""
@@ -78,10 +75,6 @@ class GameModel:
             self.player += 1
             self.view.print_message("")
             self.view.move_player()
-
-            # check whether we should update the text
-            if self.player == self.border:
-                self._swap_gamescreen()
 
             # check whether the player wins
             if self.player == len(self.text):
@@ -154,6 +147,7 @@ class GameController(ABC):
 
     async def loop(self) -> bool:
         """Start the game in asyncio context."""
+        self.model.start()
         asyncio.create_task(self.stdin_actor())
         asyncio.create_task(self.timer_actor())
         return await self.model.finished
