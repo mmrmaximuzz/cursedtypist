@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "cursedtypist"
 version = "0.1.0"
 authors = [
-  { name="Maxim Petrov", email="mmrmaximuzz@gmail.com" },
+    { name="Maxim Petrov", email="mmrmaximuzz@gmail.com" },
 ]
 description = "Simple typing game inspired by babytype."
 readme = "README.md"
