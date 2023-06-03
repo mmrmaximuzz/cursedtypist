@@ -30,6 +30,7 @@ def test_game_model_start(model):
     """The model start sets view to a game screen."""
     model.start()
     model.view.game_screen.assert_called_with(__TEST_TEXT)
+    assert model.get_result() is None
 
 
 def test_game_player_move_ok(model):
@@ -55,7 +56,7 @@ def test_game_player_move_ok(model):
     # game is not over
     model.view.win_screen.assert_not_called()
     model.view.death_screen.assert_not_called()
-    assert not model.finished.done()
+    assert model.get_result() is None
 
 
 def test_game_player_move_nok(model):
@@ -81,7 +82,7 @@ def test_game_player_move_nok(model):
     # game is not over
     model.view.win_screen.assert_not_called()
     model.view.death_screen.assert_not_called()
-    assert not model.finished.done()
+    assert model.get_result() is None
 
 
 def test_game_player_move_ok_win(model):
@@ -100,8 +101,7 @@ def test_game_player_move_ok_win(model):
     # game is over, player wins
     model.view.win_screen.assert_called()
     model.view.death_screen.assert_not_called()
-    assert model.finished.done()
-    assert model.finished.result()
+    assert model.get_result() is True
 
 
 def test_game_player_move_nok_lose(model):
@@ -123,8 +123,7 @@ def test_game_player_move_nok_lose(model):
     # game is over, player loses
     model.view.death_screen.assert_called()
     model.view.win_screen.assert_not_called()
-    assert model.finished.done()
-    assert not model.finished.result()
+    assert model.get_result() is False
 
 
 def test_game_timer_fired(model):
@@ -151,7 +150,7 @@ def test_game_timer_fired(model):
     # game is not over
     model.view.win_screen.assert_not_called()
     model.view.death_screen.assert_not_called()
-    assert not model.finished.done()
+    assert model.get_result() is None
 
 
 def test_game_timer_fired_lose(model):
@@ -174,5 +173,4 @@ def test_game_timer_fired_lose(model):
     # game is over, player loses
     model.view.death_screen.assert_called()
     model.view.win_screen.assert_not_called()
-    assert model.finished.done()
-    assert not model.finished.result()
+    assert model.get_result() is False

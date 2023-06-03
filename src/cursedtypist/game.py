@@ -2,7 +2,7 @@
 
 import asyncio
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from typing import Optional
 
 from .params import PLAYER_INIT_OFFSET, TIMER_PERIOD_SEC
 
@@ -54,7 +54,7 @@ class GameModel:
     player: int
     text: str
     border: int
-    finished: asyncio.Future
+    result: Optional[bool]
 
     def __init__(self, view: GameView, text: str):
         """Create the empty model with given text."""
@@ -62,7 +62,7 @@ class GameModel:
         self.tracer = -PLAYER_INIT_OFFSET
         self.player = 0
         self.text = text
-        self.finished = asyncio.Future()
+        self.result = None
         self.view.init_screen()
 
     def start(self) -> None:
@@ -79,7 +79,7 @@ class GameModel:
             # check whether the player wins
             if self.player == len(self.text):
                 self.view.win_screen()
-                self.finished.set_result(True)
+                self.result = True
         else:
             self.tracer += 1
             self.view.print_message("WRONG KEY")
@@ -88,7 +88,7 @@ class GameModel:
             # check whether the player loses
             if self.tracer == self.player:
                 self.view.death_screen()
-                self.finished.set_result(False)
+                self.result = False
 
         self.view.refresh()
 
@@ -100,24 +100,39 @@ class GameModel:
         # check whether the game has ended
         if self.tracer == self.player:
             self.view.death_screen()
-            self.finished.set_result(False)
+            self.result = False
 
         self.view.refresh()
 
+    def get_result(self) -> Optional[bool]:
+        """Get result of the game.
 
-@dataclass
+        None  -> the game is still in progress.
+        False -> player lost.
+        True  -> player won.
+        """
+        return self.result
+
+
 class GameController(ABC):
     """Interface between low-level events and game logic."""
 
     model: GameModel
+    state: asyncio.Future[bool]
 
     def __init__(self, model: GameModel):
         """Create the game controller."""
         self.model = model
+        self.state = asyncio.Future()
 
-    def running(self) -> bool:
-        """Check whether the game is running."""
-        return not self.model.finished.done()
+    def check_finish_state(self) -> bool:
+        """Check whether the game is finished."""
+        result = self.model.get_result()
+        if result is not None:
+            self.state.set_result(result)
+            return True
+
+        return False
 
     @abstractmethod
     async def wait_key(self) -> str:
@@ -127,27 +142,21 @@ class GameController(ABC):
         """Perform async reading from stdin with dirty hack."""
         while True:
             key = await self.wait_key()
-
-            # check exit condition
-            if not self.running():
-                break
-
             self.model.player_move(key)
+            if self.check_finish_state():
+                return
 
     async def timer_actor(self) -> None:
         """Generate timer events and notify controller."""
         while True:
             await asyncio.sleep(TIMER_PERIOD_SEC)
-
-            # check exit condition
-            if not self.running():
-                break
-
             self.model.timer_fired()
+            if self.check_finish_state():
+                return
 
     async def loop(self) -> bool:
         """Start the game in asyncio context."""
         self.model.start()
         asyncio.create_task(self.stdin_actor())
         asyncio.create_task(self.timer_actor())
-        return await self.model.finished
+        return await self.state
