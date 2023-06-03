@@ -5,4 +5,3 @@ PLAYER_INIT_OFFSET = 10
 DEFAULT_TEXT = """\
 You can play on your own texts - just pass the path as a command line
 argument"""
-

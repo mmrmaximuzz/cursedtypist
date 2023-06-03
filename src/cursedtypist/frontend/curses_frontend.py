@@ -51,11 +51,15 @@ class Params:
     MESSAGE_COLUMN = 12
 
 
-@dataclass
 class CursesController(GameController):
     """Curses-based implementation for a cursedtypist game controller."""
 
     screen: _CursesWindow
+
+    def __init__(self, model: GameModel, screen: _CursesWindow):
+        """Initialize curses game controller."""
+        super().__init__(model)
+        self.screen = screen
 
     async def wait_key(self) -> str:
         """Wait for the data in stdin and get key using `curses`."""
